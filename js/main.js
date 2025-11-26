@@ -1,0 +1,178 @@
+let currentYear = 2020;
+let map, heatmapLayer, regionsLayer;
+let statsData = {};
+
+function initMap() {
+    map = L.map('map', {zoomControl: false}).setView([55.7558, 37.6173], 4);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    }).addTo(map);
+
+    map.attributionControl.remove();
+
+    loadData();
+}
+
+function loadData() {
+    fetch('data.json')
+        .then(response => response.json())
+        .then(data => {
+            statsData = data;                
+            loadGeoJSONData(); 
+        });
+}
+
+function loadGeoJSONData() {
+    fetch('russia_regions.geojson')
+        .then(response => response.json())
+        .then(geoData => {
+            createRegionsLayer(geoData);
+            updateHeatmap();
+        })
+}        
+
+function createRegionsLayer(geoData) {
+    regionsLayer = L.geoJSON(geoData, {
+        style: function(feature) {
+            const regionName = feature.properties.region;
+            const regionStats = findRegionByName(regionName); 
+            
+            return {                    
+                fillColor: 'transparent', 
+                fillOpacity: 0,           
+                weight: 1,                
+                opacity: 0.7,             
+                color: 'gray'             
+            };
+        },
+        onEachFeature: function(feature, layer) {
+            const regionName = feature.properties.region;
+            const regionStats = findRegionByName(regionName);
+            
+            if (regionStats) {
+                const updatePopup = function() {
+                    const currentData = regionStats.data[currentYear];
+                    if (currentData) {
+                        return `
+                            <b>${regionStats.region}</b><br>
+                            Год: ${currentYear}<br>
+                            ШПД: ${currentData[0]}%<br>
+                            Домов (в тыс.): ${currentData[1]}
+                        `;
+                    } else {
+                        return `<b>${regionStats.region}</b><br>Нет данных за ${currentYear} год`;
+                    }
+                };
+                
+                layer.bindPopup(updatePopup());
+                
+                layer.on('click', function(e) {                        
+                    layer.setPopupContent(updatePopup());
+                    highlightRegion(layer);
+                });
+            } else {
+                layer.bindPopup(`<b>${regionName}</b><br>Данные отсутствуют`);
+            }
+        }
+    }).addTo(map);
+}
+
+function findRegionByName(name) {
+    for (const regionId in statsData) {
+        if (statsData[regionId].region === name) {
+            return statsData[regionId];
+        }
+    }
+    return null;
+}
+
+function updateHeatmap() {
+    if (heatmapLayer) {
+        map.removeLayer(heatmapLayer);
+    }
+    
+    const heatPoints = [];
+    
+    regionsLayer.eachLayer(function(layer) {
+        const center = layer.getBounds().getCenter();
+        const regionName = layer.feature.properties.region;
+        const regionStats = findRegionByName(regionName);
+        
+        if (regionStats && regionStats.data[currentYear]) {
+            const percentage = regionStats.data[currentYear][0];
+            heatPoints.push([
+                center.lat,
+                center.lng,
+                percentage / 100
+            ]);
+        }
+    });
+    
+    if (heatPoints.length > 0) {
+        heatmapLayer = L.heatLayer(heatPoints, {
+            radius: 40,
+            blur: 5,
+            maxZoom: 10,
+            minOpacity: 0.3,
+            max: 1.0,
+            gradient: {
+                0.1: 'blue',
+                0.3: 'cyan', 
+                0.5: 'lime',
+                0.7: 'yellow',
+                0.9: 'red'
+            }
+        }).addTo(map);
+
+    } 
+}
+
+function highlightRegion(layer) {
+    if (regionsLayer) {
+        regionsLayer.eachLayer(function(regionLayer) {
+            const regionName = regionLayer.feature.properties.region;
+            const regionStats = findRegionByName(regionName);
+
+                regionLayer.setStyle({ 
+                    weight: 1, 
+                    color: 'gray',
+                    opacity: 0.7
+                });
+            });
+        layer.setStyle({ 
+            weight: 3, 
+            color: '#ff0000',
+            opacity: 1
+        });
+    }
+}
+        
+document.getElementById('yearSlider').addEventListener('input', function(e) {
+    currentYear = parseInt(e.target.value);
+    document.getElementById('currentYear').textContent = currentYear;
+
+    if (regionsLayer) {
+        regionsLayer.eachLayer(function(layer) {
+            const regionName = layer.feature.properties.region;
+            const regionStats = findRegionByName(regionName);
+            
+            if (regionStats) {
+                const currentData = regionStats.data[currentYear];
+                if (currentData) {
+                    layer.setPopupContent(`
+                        <b>${regionStats.region}</b><br>
+                        Год: ${currentYear}<br>
+                        ШПД: ${currentData[0]}%<br>
+                        Домов: ${currentData[1]}
+                    `);
+                } else {
+                    layer.setPopupContent(`<b>${regionStats.region}</b><br>Нет данных за ${currentYear} год`);
+                }
+            }
+        });
+    }
+    
+    updateHeatmap();
+});
+
+initMap();
