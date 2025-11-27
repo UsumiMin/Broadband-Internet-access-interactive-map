@@ -31,6 +31,15 @@ function loadGeoJSONData() {
         })
 }        
 
+document.addEventListener("DOMContentLoaded", () => {
+    const menuBtn = document.querySelector(".header-team-btn");
+    const teamdrop = document.querySelector(".header-drop");
+
+    menuBtn.addEventListener('click', () => {
+        teamdrop.classList.toggle("open");
+    });
+});
+
 function createRegionsLayer(geoData) {
     regionsLayer = L.geoJSON(geoData, {
         style: function(feature) {
@@ -116,11 +125,11 @@ function updateHeatmap() {
             minOpacity: 0.3,
             max: 1.0,
             gradient: {
-                0.1: 'blue',
-                0.3: 'cyan', 
-                0.5: 'lime',
-                0.7: 'yellow',
-                0.9: 'red'
+                0.1: 'rgb(212, 255, 100)',
+                0.3: 'rgba(136, 255, 100, 1)', 
+                0.5: 'rgb(86, 245, 96)',
+                0.7: 'rgba(45, 218, 105, 1)',
+                0.9: 'rgba(14, 178, 109, 1)'
             }
         }).addTo(map);
 
@@ -141,7 +150,7 @@ function highlightRegion(layer) {
             });
         layer.setStyle({ 
             weight: 3, 
-            color: '#ff0000',
+            color: '#007616ff',
             opacity: 1
         });
     }

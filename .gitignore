@@ -208,3 +208,6 @@ __marimo__/
 
 # JSON
 russia_regions.geojson
+
+*.geojson
+*.json

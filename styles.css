@@ -22,6 +22,74 @@ html, body {
     padding: 0;
 }
 
+.header-team-btn {
+    position: absolute;
+    width: 180px;
+    height: 64px;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 15px;
+    background: rgb(255, 255, 255);
+    z-index: 3000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: background 0.2s ease;
+    font-size: 14px;
+}
+
+.header-team-btn:hover {
+    background: rgb(219, 219, 219);
+}
+
+.header-drop {
+    position: absolute;
+    right: 20px;
+    top: 65px;
+    width: 100px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border-radius: 0px 0px 8px 8px;
+    padding: 10px 10px;
+    width: 180px;
+
+    display: flex;
+    flex-direction: column;
+
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+        max-height 0.35s ease,
+        opacity 0.25s ease;
+    z-index: 2000;
+}
+
+.header-drop.open{
+    max-height: 500px;
+    opacity: 1;
+    padding: 10px 0;
+    display: flex;
+    padding: 10px 10px;
+}
+
+/* .team-slider-arrow {
+    position: absolute;
+    left: -15px;
+    top: 50%;
+    transform: translateY(-50%) rotate(180deg);
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 12px solid #242723;
+    transition: transform 0.3s ease;
+}
+
+.team-slider.open .team-slider-arrow {
+    transform: translateY(-50%) rotate(0deg);
+} */
+
+
 #map {
     width: 100%;
     height: 100%;
@@ -36,6 +104,7 @@ html, body {
     padding: 20px 20px;
     border-radius: 0px 0px 8px 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    gap: 20px;
 }
 
 .timeline-container {
@@ -70,19 +139,31 @@ html, body {
     font-weight: 500;
 }
 
+.team-text-position {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.team-text-name {
+    font-size: 13px;
+    font-weight: 300;
+}
+
 #yearSlider {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
     height: 25px;
     padding: 2px;
+    /* background: linear-gradient(to right, #22ccb4, #22cc69, #56f560, #22cc69, #22ccb4); */
+    /* background: linear-gradient(to right, #22ccb4, #56f560, #e7ff4e, #56f560, #22ccb4); */
     background: linear-gradient(to right, #22ccb4, #56f560, #e7ff4e);
     background-size: 200% 100%;
     border-radius: 9999px;
     outline: none;
     transition: all 0.3s ease-in-out;
     cursor: pointer;
-    animation: colorFlow 3s ease infinite;
+    animation: colorFlow 6s ease infinite;
 }
 
 #yearSlider:hover {
