@@ -87,8 +87,7 @@ function createRegionsLayer(geoData) {
                         return `
                             <b>${regionStats.region}</b><br>
                             Год: ${currentYear}<br>
-                            ШПД: ${currentData[0]}%<br>
-                            Домов (в тыс.): ${currentData[1]}
+                            ШПД: ${currentData[0]}%
                         `;
                     } else {
                         return `<b>${regionStats.region}</b><br>Нет данных за ${currentYear} год`;
