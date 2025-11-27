@@ -14,7 +14,7 @@ function initMap() {
 }
 
 function loadData() {
-    fetch('data.json')
+    fetch('../data.json')
         .then(response => response.json())
         .then(data => {
             statsData = data;                
@@ -23,12 +23,34 @@ function loadData() {
 }
 
 function loadGeoJSONData() {
-    fetch('russia_regions.geojson')
+    const allGeoData = [];
+
+    const loadFirst =  fetch('../russia_regions.geojson')
         .then(response => response.json())
         .then(geoData => {
-            createRegionsLayer(geoData);
+            allGeoData.push(...geoData.features);
+        })
+
+    const loadSecond = fetch('../new_regions.geojson')
+        .then(response => response.json())
+        .then(geoData => {
+            allGeoData.push(...geoData.features);
+        });
+        
+
+    Promise.all([loadFirst, loadSecond])
+        .then(() => {
+            const combinedGeoData = {
+                type: "FeatureCollection",
+                features: allGeoData
+            };
+            createRegionsLayer(combinedGeoData);
             updateHeatmap();
         })
+        .catch(error => {
+            console.error("Ошибка загрузки GeoJSON:", error);
+        });
+  
 }        
 
 function createRegionsLayer(geoData) {
