@@ -87,8 +87,20 @@ function loadGeoJSONData() {
             });
         })
         .catch(error => console.error('Error loading russia_regions:', error));
+    
+    const loadNewRegions = fetch('../new_regions.geojson')
+        .then(response => response.json())
+        .then(geoData => {
+            console.log('new_regions loaded:', geoData.features.length, 'features');
 
-    Promise.all([loadFirst])
+            geoData.features.forEach(f => {
+                const normalized = normalizeCoordinates(f);
+                allGeoData.push(normalized);
+            });
+        })
+        .catch(error => console.error('Error loading new_regions:', error));
+
+    Promise.all([loadFirst, loadNewRegions])
         .then(() => {
             console.log('Total features after merge:', allGeoData.length);
             const combinedGeoData = {
@@ -104,7 +116,7 @@ function loadGeoJSONData() {
 function createRegionsLayer(geoData) {
     regionsLayer = L.geoJSON(geoData, {
         style: function(feature) {
-            const regionName = feature.properties.region;
+            const regionName = feature.properties.name || feature.properties.region;
             const regionStats = findRegionByName(regionName); 
             
             return {                    
@@ -116,7 +128,7 @@ function createRegionsLayer(geoData) {
             };
         },
         onEachFeature: function(feature, layer) {
-            const regionName = feature.properties.region;
+            const regionName = feature.properties.name || feature.properties.region;
             const regionStats = findRegionByName(regionName);
             
             if (regionStats) {
