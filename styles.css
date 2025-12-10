@@ -13,7 +13,7 @@
 @font-face {
     font-family: 'MyFont';
     src: url('fonts/SB Sans Text Heavy.ttf') format('truetype');
-    font-weight: 700;
+    font-weight: 500;
 }
 
 html, body {
@@ -35,6 +35,7 @@ html, body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     transition: background 0.2s ease;
     font-size: 14px;
+    font-weight: 300;
 }
 
 .header-team-btn:hover {
@@ -72,23 +73,70 @@ html, body {
     padding: 10px 10px;
 }
 
-/* .team-slider-arrow {
+.header-legend-btn {
     position: absolute;
-    left: -15px;
+    width: 180px;
+    height: 64px;
+    right: 200px;
     top: 50%;
-    transform: translateY(-50%) rotate(180deg);
-    width: 0;
-    height: 0;
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent;
-    border-left: 12px solid #242723;
-    transition: transform 0.3s ease;
+    transform: translateY(-50%);
+    padding: 15px;
+    background: rgb(255, 255, 255);
+    z-index: 3000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: background 0.2s ease;
+    font-size: 14px;
+    font-weight: 300;
 }
 
-.team-slider.open .team-slider-arrow {
-    transform: translateY(-50%) rotate(0deg);
-} */
+.header-legend-btn:hover {
+    background: rgb(219, 219, 219);
+}
 
+.header-drop-legend {
+    position: absolute;
+    right: 200px;
+    top: 65px;
+    width: 100px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border-radius: 0px 0px 8px 8px;
+    padding: 10px 10px;
+    width: 180px;
+
+    display: flex;
+    flex-direction: column;
+
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+        max-height 0.35s ease,
+        opacity 0.25s ease;
+    z-index: 2000;
+}
+
+.header-drop-legend.open{
+    max-height: 500px;
+    opacity: 1;
+    padding: 10px 0;
+    display: flex;
+    padding: 10px 10px;
+}
+
+.legend {
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.color-box {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+    border-radius: 3px;
+    vertical-align: middle;
+}
 
 #map {
     width: 100%;
@@ -101,7 +149,7 @@ html, body {
     height: 65px;
     z-index: 1000;
     background: white;
-    padding: 20px 20px;
+    padding: 20px 40px;
     border-radius: 0px 0px 8px 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     gap: 20px;
@@ -136,7 +184,8 @@ html, body {
 
 .header-text{
     text-align: center;
-    font-weight: 500;
+    font-weight: 690;
+    font-size: 18px;
 }
 
 .team-text-position {
