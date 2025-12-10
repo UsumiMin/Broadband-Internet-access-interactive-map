@@ -4,117 +4,44 @@ let statsData = {};
 
 
 function initMap() {
-    const center = [65.0, 150.0];
-    const initialZoom = 3;
+    map = L.map('map', { zoomControl: false }).setView([55.7558, 37.6173], 4);
 
-    const maxBounds = L.latLngBounds(
-        [-75, -210],
-        [82, 210]
-    );
-    
-    map = L.map('map', {
-        zoomControl: false,
-        center: center,
-        zoom: initialZoom,
-        maxBounds: maxBounds,
-        maxBoundsViscosity: 0.8,
-        minZoom: 2,
-        maxZoom: 18,
-        worldCopyJump: false
-    });
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        noWrap: false,
-        bounds: [[-85, -180], [85, 180]]
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map);
 
     map.attributionControl.remove();
-    map.setMaxBounds(maxBounds);
-       
+
     loadData();
 }
 
-
-function createSafeId(name) {
-    if (!name) return 'unknown';
-    
-    // Убираем все не-буквенно-цифровые символы, включая скобки
-    return name
-        .replace(/[()\[\]{}]/g, '')  // убираем скобки
-        .replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, '') // оставляем только буквы и цифры
-        .replace(/\s+/g, '');
-}
-
 function loadData() {
-    fetch('../regions.json')
+    fetch('../data.json')
         .then(response => response.json())
         .then(data => {
-            statsData = data;                
-            loadGeoJSONData(); 
-        })
-        .catch(error => console.error('Error loading regions.json:', error));
+            statsData = data;
+            loadGeoJSONData();
+        });
 }
-
-function normalizeCoordinates(feature) {
-    function normalizeLng(lng) {
-        return lng < 0 ? lng + 360 : lng;
-    }
-
-    function processCoords(coords) {
-        if (typeof coords[0] === "number") {
-            return [ normalizeLng(coords[0]), coords[1] ];
-        }
-
-        return coords.map(c => processCoords(c));
-    }
-
-    if (feature.geometry && feature.geometry.coordinates) {
-        feature.geometry.coordinates = processCoords(feature.geometry.coordinates);
-    }
-
-    return feature;
-}
-
 
 function loadGeoJSONData() {
     const allGeoData = [];
 
     const loadFirst = fetch('../russia_regions.geojson')
         .then(response => response.json())
-        .then(geoData => {
-            console.log('russia_regions loaded:', geoData.features.length, 'features');
+        .then(geoData => allGeoData.push(...geoData.features));
 
-            geoData.features.forEach(f => {
-                const normalized = normalizeCoordinates(f);
-                allGeoData.push(normalized);
-            });
-        })
-        .catch(error => console.error('Error loading russia_regions:', error));
-    
-    const loadNewRegions = fetch('../new_regions.geojson')
+    const loadSecond = fetch('../new_regions.geojson')
         .then(response => response.json())
-        .then(geoData => {
-            console.log('new_regions loaded:', geoData.features.length, 'features');
+        .then(geoData => allGeoData.push(...geoData.features));
 
-            geoData.features.forEach(f => {
-                const normalized = normalizeCoordinates(f);
-                allGeoData.push(normalized);
-            });
-        })
-        .catch(error => console.error('Error loading new_regions:', error));
-
-    Promise.all([loadFirst, loadNewRegions])
+    Promise.all([loadFirst, loadSecond])
         .then(() => {
-            console.log('Total features after merge:', allGeoData.length);
-            const combinedGeoData = {
+            createRegionsLayer({
                 type: "FeatureCollection",
                 features: allGeoData
-            };
-            createRegionsLayer(combinedGeoData);
+            });
             updateHeatmap();
         })
-        .catch(error => console.error('Error in Promise.all:', error));
+        .catch(error => console.error("Ошибка загрузки GeoJSON:", error));
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -128,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 document.addEventListener("DOMContentLoaded", () => {
     const menuBtn = document.querySelector(".header-legend-btn");
-    const teamdrop = document.querySelector(".header-drop-legend");
+    const teamdrop = document.querySelector(".header-drop-legens");
 
     menuBtn.addEventListener('click', () => {
         teamdrop.classList.toggle("open");
@@ -137,19 +64,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function createRegionsLayer(geoData) {
     regionsLayer = L.geoJSON(geoData, {
-        style: function() {
-            return {                    
-                fillColor: 'transparent', 
-                fillOpacity: 0,           
-                weight: 2,                
-                opacity: 0.8,             
-                color: 'gray'             
-            };
-        },
-        onEachFeature: function(feature, layer) {
-            const regionName = feature.properties.name || feature.properties.region;
+        style: () => ({
+            fillColor: 'transparent',
+            fillOpacity: 0,
+            weight: 1,
+            opacity: 0.7,
+            color: 'gray'
+        }),
+
+        onEachFeature: function (feature, layer) {
+            const regionName = feature.properties.region;
             const regionStats = findRegionByName(regionName);
-            
+
             if (!regionStats) {
                 layer.bindPopup(`
                     <div class="header-text">${regionName}</div>
@@ -161,7 +87,8 @@ function createRegionsLayer(geoData) {
             layer.chartInstance = null;
             layer.ringInstance = null;
 
-            const safeId = createSafeId(regionName);
+            const safeId = regionName.replace(/\s+/g, '');
+
             const popupHTML = `
                 <div class="header-text">
                     ${regionStats.region}
@@ -198,14 +125,6 @@ function createRegionsLayer(geoData) {
             layer.bindPopup(popupHTML);
 
             layer.on('popupopen', () => {
-                if (layer.chartInstance) {
-                    layer.chartInstance.destroy();
-                    layer.chartInstance = null;
-                }
-                if (layer.ringInstance) {
-                    layer.ringInstance.destroy();
-                    layer.ringInstance = null;
-                }
                 const infoBox = document.querySelector(`#info-${safeId}`);
                 if (infoBox) {
                     const yearBox = infoBox.querySelector(".year-value");
@@ -325,85 +244,56 @@ function findRegionByName(name) {
     return null;
 }
 
-function fixLngBack(lng) {
-    return lng > 180 ? lng - 360 : lng;
-}
-
 function updateHeatmap() {
-    if (heatmapLayer) {
-        map.removeLayer(heatmapLayer);
-    }
-    
-    // Обновляем стили регионов на основе данных
-    regionsLayer.eachLayer(function(layer) {
+    if (heatmapLayer) map.removeLayer(heatmapLayer);
+
+    const heatPoints = [];
+
+    regionsLayer.eachLayer(layer => {
+        const center = layer.getBounds().getCenter();
         const regionName = layer.feature.properties.region;
         const regionStats = findRegionByName(regionName);
-        
+
         if (regionStats && regionStats.data[currentYear]) {
             const percentage = regionStats.data[currentYear][0];
-            const intensity = percentage / 100;
-            
-            // Определяем цвет на основе процента
-            let color;
-            if (percentage < 60) color = 'rgb(212, 255, 100)';
-            else if (percentage < 70) color = 'rgba(136, 255, 100, 1)';
-            else if (percentage < 75) color = 'rgb(86, 245, 96)';
-            else if (percentage < 80) color = 'rgba(45, 218, 105, 1)';
-            else if (percentage < 85) color = 'rgba(12, 170, 78, 1)';
-            else if (percentage < 90) color = 'rgba(3, 138, 59, 1)';
-            else if (percentage < 95) color = 'rgba(0, 92, 54, 1)';
-            else if (percentage >= 95) color = 'rgba(2, 68, 40, 1)';
-            
-            layer.setStyle({
-                fillColor: color,
-                fillOpacity: 0.7,
-                weight: 1,
-                color: 'rgba(192, 255, 216, 1)',
-                opacity: 0.5
-            });
-            
-            const popup = layer.getPopup();
-
-            if (popup && popup._isOpen) {
-                const safeId = createSafeId(regionName);
-
-            const infoBox = document.getElementById(`info-${safeId}`);
-            if (infoBox) {
-                 infoBox.querySelector('.year-value').textContent = currentYear;
-                infoBox.querySelector('.spd-value').textContent = percentage + '%';
-            }
-
-}
-        } else {
-            // Серый цвет для регионов без данных
-            layer.setStyle({
-                fillColor: '#ccc',
-                fillOpacity: 0.3,
-                weight: 1,
-                color: '#999',
-                opacity: 0.3
-            });
+            heatPoints.push([center.lat, center.lng, percentage / 100]);
         }
     });
+
+    if (heatPoints.length > 0) {
+        heatmapLayer = L.heatLayer(heatPoints, {
+            radius: 40,
+            blur: 5,
+            maxZoom: 10,
+            minOpacity: 0.3,
+            max: 1.0,
+            gradient: {
+                0.1: 'rgb(212, 255, 100)',
+                0.3: 'rgba(136, 255, 100, 1)',
+                0.5: 'rgb(86, 245, 96)',
+                0.7: 'rgba(45, 218, 105, 1)',
+                0.9: 'rgba(14, 178, 109, 1)'
+            }
+        }).addTo(map);
+    }
 }
 
 function highlightRegion(layer) {
-    if (regionsLayer) {
-        regionsLayer.eachLayer(function(regionLayer) {
-            regionLayer.setStyle({ 
-                weight: 1, 
-                color: 'gray',
-                opacity: 0.7
-            });
+    regionsLayer.eachLayer(regionLayer => {
+        regionLayer.setStyle({
+            weight: 1,
+            color: 'gray',
+            opacity: 0.7
         });
-        layer.setStyle({ 
-            weight: 3, 
-            color: 'rgba(234, 59, 0, 1)',
-            opacity: 1
-        });
-    }
+    });
+
+    layer.setStyle({
+        weight: 3,
+        color: '#007616ff',
+        opacity: 1
+    });
 }
-        
+
 document.getElementById('yearSlider').addEventListener('input', function (e) {
     currentYear = parseInt(e.target.value);
     document.getElementById('currentYear').textContent = currentYear;
@@ -413,7 +303,7 @@ document.getElementById('yearSlider').addEventListener('input', function (e) {
         const regionStats = findRegionByName(regionName);
         if (!regionStats) return;
 
-        const safeId = createSafeId(regionName);
+        const safeId = regionName.replace(/\s+/g, '');
         const infoBox = document.getElementById(`info-${safeId}`);
 
         if (infoBox) {
